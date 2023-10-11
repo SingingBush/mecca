@@ -1,0 +1,55 @@
+name: Dub
+
+on:
+  push:
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        compiler:
+          - dmd-latest
+          - ldc-latest
+          - dmd-2.103.1 # (released in 2023)
+          - dmd-2.102.2 # (released in 2023)
+          - dmd-2.101.2 # (released in 2023)
+          - dmd-2.100.2 # (released in 2022) ## GDC 12 can support 2.100
+          # - dmd-2.099.1 # (released in 2022)
+          # - dmd-2.098.1 # (released in 2021) ## Has issue re: phobos/std/variant.d
+          # - dmd-2.097.2 # (released in 2021)
+          - dmd-2.096.1 # (released in 2021)
+          - dmd-2.095.1 # (released in 2021)
+          - dmd-2.090.1 # (released in 2020)
+        include:
+          - { os: macos-latest, compiler: dmd-latest }
+          - { os: macos-latest, compiler: ldc-latest }
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install ${{ matrix.compiler }}
+      uses: dlang-community/setup-dlang@v1
+      with:
+        compiler: ${{ matrix.compiler }}
+
+    - name: 'Build & Test'
+      env:
+        DFLAGS: '-w -de'
+      run: |
+        dub build --compiler=$DC
+        dub run --config=mecca-ut --compiler=$DC
+
+    - name: 'Build Examples'
+      run: |
+        dub build --config=lordcmdr --compiler=$DC
+        dub build --config=sleeper --compiler=$DC
+        dub build --config=echo-server --compiler=$DC
